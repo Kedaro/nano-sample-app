@@ -14,3 +14,5 @@ Dockerfile.cudasamples
 
 NOTE: CUDA runtime libraries are very large, some even reaching 100-250MB. Therefore not all sample apps have been built in order to keep image size low.
 To build more examples please add them to the samples section of the Dockerfile.
+
+If headless GPU computing needs to be performed, without CUDA runtime and without using a display, comment out the path of runtime libs as mentioned in the docker file and remove xorg from the final image.
