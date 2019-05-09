@@ -1,0 +1,16 @@
+Dockerfile.cudasamples
+
+1) Install NVidia SDK & download all packages for the Jetson NANO. Do not flash the board from SDK manager.
+2) run ./prepare.sh <path_to_sdk_downloads_dir>
+3) Build Dockerfile.cudasamples
+4) In the app container, start the X display server and run the prebuilt sample apps:
+    $ X &
+    $ ./clock
+    $ ./deviceQuery
+    $ ./postProcessGL
+    $ ./simpleGL
+    $ ./simpleTexture3D
+    $ ./smokeParticles
+
+NOTE: CUDA runtime libraries are very large, some even reaching 100-250MB. Therefore not all sample apps have been built in order to keep image size low.
+To build more examples please add them to the samples section of the Dockerfile.
