@@ -1,0 +1,63 @@
+FROM balenalib/jetson-tx2-ubuntu:bionic as buildstep
+
+WORKDIR /usr/src/app
+
+COPY ./nvidia_drivers.tbz2 .
+COPY ./config.tbz2 .
+COPY ./cuda-repo-l4t-10-0-local-10.0.166_1.0-1_arm64.deb .
+COPY ./libcudnn7_7.3.1.28-1+cuda10.0_arm64.deb .
+COPY ./libcudnn7-dev_7.3.1.28-1+cuda10.0_arm64.deb .
+
+# Prepare configuration so that
+# container Apps can talk to the GPU
+RUN \
+    tar xjf nvidia_drivers.tbz2 -C / && \
+    tar xjf config.tbz2 -C / --exclude=etc/hosts --exclude=etc/hostname && \
+    echo "/usr/lib/aarch64-linux-gnu/tegra" > /etc/ld.so.conf.d/nvidia-tegra.conf && \
+    ldconfig && rm -rf *.tbz2
+
+ENV DEBIAN_FRONTEND noninteractive
+
+# Install runtime & build libraries and build opencv
+RUN \
+    dpkg -i cuda-repo-l4t-10-0-local-10.0.166_1.0-1_arm64.deb \
+    libcudnn7_7.3.1.28-1+cuda10.0_arm64.deb \
+    libcudnn7-dev_7.3.1.28-1+cuda10.0_arm64.deb && \
+    apt-key add /var/cuda-repo-10-0-local-10.0.166/*.pub && \
+    apt-get update && \
+    apt-get install cuda-compiler-10-0 cuda-samples-10-0 \
+    lbzip2 xorg xorg-dev \
+    cmake wget unzip \
+    libgtk2.0-dev pkg-config \
+    libavcodec-dev libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libjpeg-dev libpng-dev libtiff-dev \
+    libdc1394-22-dev -y --no-install-recommends && \
+    rm -rf ./*.deb && \
+    dpkg --remove cuda-repo-l4t-10-0-local-10.0.166 && dpkg -P cuda-repo-l4t-10-0-local-10.0.166 && \
+    echo "Aici era buildul de cuda" && \
+    echo "/usr/lib/aarch64-linux-gnu/tegra" > /etc/ld.so.conf.d/nvidia-tegra.conf \
+    && ldconfig && wget https://github.com/opencv/opencv/archive/4.0.1.zip && \
+    unzip 4.0.1.zip && rm 4.0.1.zip && \
+    mkdir -p opencv-4.0.1/work && cd opencv-4.0.1/work && \
+    cmake -D WITH_CUDA=ON -D CUDA_ARCH_BIN="5.3" -D CUDA_ARCH_PTX="" -D WITH_GSTREAMER=ON -D BUILD_EXAMPLES=ON -D BUILD_DOCS=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_TESTS=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-1.0/ .. && \
+    make -j16 && make install && \
+    mv /usr/src/app/opencv-4.0.1/work/bin /usr/src/app/opencv_samples && cd /usr/src/app/ && rm -rf /usr/src/app/opencv-4.0.1
+    
+
+FROM balenalib/jetson-tx2-ubuntu:bionic as final
+
+COPY --from=buildstep /usr/src/app/ /usr/src/app/
+COPY --from=buildstep /usr/local/cuda-10.0 /usr/local/cuda-10.0
+COPY --from=buildstep /usr/lib/aarch64-linux-gnu /usr/lib/aarch64-linux-gnu
+COPY --from=buildstep /usr/local/lib /usr/local/lib
+
+ENV UDEV=1
+ENV LD_LIBRARY_PATH=/usr/local/lib/:/usr/lib/aarch64-linux-gnu/:/usr/lib/aarch64-linux-gnu/tegra:/usr/local/cuda-10.0/targets/aarch64-linux/lib/
+
+RUN apt-get update && apt-get install xorg xterm -y && \
+    echo "/usr/lib/aarch64-linux-gnu/tegra" > /etc/ld.so.conf.d/nvidia-tegra.conf && ldconfig
+
+WORKDIR /usr/src/app
+
+CMD [ "sleep", "infinity" ]
