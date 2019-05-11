@@ -16,3 +16,17 @@ NOTE: CUDA runtime libraries are very large, some even reaching 100-250MB. There
 To build more examples please add them to the samples section of the Dockerfile.
 
 If headless GPU computing needs to be performed, without CUDA runtime and without using a display, comment out the path of runtime libs as mentioned in the docker file and remove xorg from the final image.
+
+Dockerfile.opencv
+
+This dockerfile presents how OpenCV can be built with CUDA libraries inside a container.
+a) Perform steps 1) and 2) from above but remove libcudnn debs to improve upload time
+b) Build Dockerfile.opencv
+c) In the app container run
+   $ export DISPLAY=:0
+   $ ./example_ximgproc_fourier_descriptors_demo
+   $ ./example_ximgproc_paillou_demo corridor.jpg
+
+NOTE: This example builds only a small subset of OpenCV & CUDA modules to keep build time and image size at a low point.
+Building specific OpenCV modules is done by selecting them in the build args: cmake -D BUILD_LIST=module1,module2.
+Depending on specific usecase, select modules may need to be added as dependencies, otherwise OpenCV build may fail.
