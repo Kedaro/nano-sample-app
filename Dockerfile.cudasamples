@@ -1,4 +1,4 @@
-FROM balenalib/jetson-tx2-ubuntu:bionic as buildstep
+FROM balenalib/jetson-nano-ubuntu:bionic as buildstep
 
 WORKDIR /usr/src/app
 
@@ -37,7 +37,7 @@ RUN \
     rm -rf /usr/local/cuda-10.0/targets && \
     rm -rf /usr/local/cuda-10.0/doc
 
-FROM balenalib/jetson-tx2-ubuntu:bionic as final
+FROM balenalib/jetson-nano-ubuntu:bionic as final
 
 COPY --from=buildstep /usr/local/cuda-10.0 /usr/local/cuda-10.0
 
