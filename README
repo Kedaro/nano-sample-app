@@ -33,3 +33,48 @@ Building specific OpenCV modules is done by selecting them in the build args: cm
 Depending on specific usecase, select modules may need to be added as dependencies, otherwise OpenCV build may fail.
 
 In this format the resulting build image is around 1.05 GB.
+
+Dockerfile.gstreamer
+
+This example presents how NVidia gstreamer libraries containing gst elements can be used withing a gstreamer pipeline.
+
+a) Build Dockerfile.gstreamer
+b) After application is successfully uploaded to the jetson-nano board, execute in a container:
+   $ gst-inspect-1.0 |grep omx
+     mx:  nvoverlaysink: OpenMax Video Sink
+     omx:  omxvp9enc: OpenMAX VP9 Video Encoder
+     omx:  omxvp8enc: OpenMAX VP8 Video Encoder
+     omx:  omxh265enc: OpenMAX H.265 Video Encoder
+     omx:  omxh264enc: OpenMAX H.264 Video Encoder
+     omx:  omxwmvdec: OpenMAX WMV Video Decoder
+     omx:  omxmpeg2videodec: OpenMAX MPEG2 Video Decoder
+     omx:  omxvp9dec: OpenMAX VP9 Video Decoder
+     omx:  omxvp8dec: OpenMAX VP8 Video Decoder
+     omx:  omxh265dec: OpenMAX H.265 Video Decoder
+     omx:  omxh264dec: OpenMAX H.264 Video Decoder
+     omx:  omxmpeg4videodec: OpenMAX MPEG4 Video Decoder
+     libav:  avenc_h264_omx: libav OpenMAX IL H.264 video encoder encoder
+
+c) A test pipeline can be constructed like so:
+   $ gst-launch-1.0 videotestsrc ! 'video/x-raw, format=(string)I420,width=(int)640, height=(int)480' ! omxh264enc ! 'video/x-h264, stream-format=(string)byte-stream' ! h264parse ! omxh264dec ! nvoverlaysink -e
+     Pipeline is PREROLLING ...
+     Framerate set to : 30 at NvxVideoEncoderSetParameterNvMMLiteOpen : Block : BlockType = 4
+     ===== NVMEDIA: NVENC =====
+     NvMMLiteBlockCreate : Block : BlockType = 4
+     H264: Profile = 66, Level = 40
+     NvMMLiteOpen : Block : BlockType = 261
+     NVMEDIA: Reading sys.display-size : status: 6
+     NvMMLiteBlockCreate : Block : BlockType = 261
+     Allocating new output: 640x480 (x 24), ThumbnailMode = 0
+     OPENMAX: HandleNewStreamFormat: 3595: Send OMX_EventPortSettingsChanged: nFrameWidth = 640, nFrameHeight = 480
+     Pipeline is PREROLLED ...
+     Setting pipeline to PLAYING ...
+     New clock: GstSystemClock
+
+d) While the gstreamer pipeline from step c) is running, open a HostOS tab in the dashboard and execute the following line:
+   ~# cp $(find /  | grep tegrastats | grep data) /tmp/ && /tmp/tegrastats
+
+   You should see logs similar to this:
+   RAM 871/3964MB (lfb 29x4MB) IRAM 0/252kB(lfb 252kB) CPU [25%@307,19%@307,25%@307,15%@307] EMC_FREQ 2%@1600 GR3D_FREQ 0%@76 NVENC 716 NVDEC 716 APE 25 PLL@34.5C CPU@36.5C PMIC@100C GPU@36.5C AO@44C thermal@36C POM_5V_IN 2798/2789 POM_5V_GPU 0/0 POM_5V_CPU 370/378
+
+   NVENC and NVDEC show that the hardware decoders are currently running. If you stop the gst-launch-1.0 application, NVENC and NVDEC will no longer be displayed by tegrastats.
