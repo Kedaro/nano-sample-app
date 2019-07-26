@@ -1,0 +1,39 @@
+FROM balenalib/jetson-nano-ubuntu:bionic as buildstep
+
+WORKDIR /usr/src/app
+
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN \
+    apt-get update && \
+    apt-get install \
+    wget \
+    tar \
+    bzip2 \
+    lbzip2 \
+    gstreamer1.0-tools \
+    gstreamer1.0-alsa \
+    gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-ugly \
+    gstreamer1.0-libav \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libgstreamer-plugins-good1.0-dev \
+    libgstreamer-plugins-bad1.0-dev \
+    xorg -y
+
+RUN \
+    wget https://developer.nvidia.com/embedded/dlc/l4t-jetson-driver-package-32-1-jetson-nano && \
+    tar xf l4t-jetson-driver-package-32-1-jetson-nano && \
+    cd Linux_for_Tegra && \
+    sed -i 's/config.tbz2/config.tbz2 --exclude=etc\/hosts --exclude=etc\/hostname/g' apply_binaries.sh && \
+    ./apply_binaries.sh -r / && cd .. \
+    rm -rf l4t-jetson-driver-package-32-1-jetson-nano && \
+    rm -rf Linux_for_Tegra && \
+    echo "/usr/lib/aarch64-linux-gnu/tegra" > /etc/ld.so.conf.d/nvidia-tegra.conf && ldconfig
+
+CMD ["bash"]
+
+
